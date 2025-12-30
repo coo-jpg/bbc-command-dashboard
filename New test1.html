@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BBC – Sites & Guards Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #0b0f1a;
+  color: #e5e7eb;
+  font-family: Arial, sans-serif;
+}
+
+/* HEADER */
+#header {
+  height: 64px;
+  background: #020617;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1px solid #1f2937;
+}
+#header img {
+  height: 44px;
+  margin-right: 14px;
+}
+#header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+#header span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* LAYOUT */
+.container {
+  display: flex;
+  height: calc(100vh - 64px);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 420px;
+  background: #0f172a;
+  border-right: 1px solid #1f2937;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: 14px;
+}
+.section h3 {
+  font-size: 13px;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  background: #020617;
+  border-left: 4px solid #2563eb;
+  text-transform: uppercase;
+}
+.section .content {
+  background: #0b1220;
+  padding: 6px;
+  border: 1px solid #1f2937;
+  font-size: 13px;
+}
+
+.empty {
+  color: #6b7280;
+}
+
+/* TABLE */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th, td {
+  padding: 5px;
+  border: 1px solid #1f2937;
+}
+th {
+  background: #020617;
+}
+
+/* DUTY STATES */
+.on-duty { background: rgba(16,185,129,0.15); }
+.off-duty { background: rgba(245,158,11,0.15); }
+.absconding {
+  background: rgba(239,68,68,0.25);
+  font-weight: bold;
+}
+
+/* MAP */
+#map {
+  flex: 1;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER WITH LOGO -->
+<img
+  src="https://lh3.googleusercontent.com/d/12Xf4kpshWWpf-TntBM7dCTNyemEWPeUt"
+  alt="Black Belt Commandos Logo"
+  referrerpolicy="no-referrer"
+>
+
+
+<div class="container">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="sitePanel" class="empty">
+      Click a site pin to view details
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map"></div>
+
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const SHEET_ID = "1sp0zxqkeBLyNLMcLgnmRRcwAm_AiXLI3XGSCvWvWnoM";
+
+const SITES_URL = `https://opensheet.elk.sh/${SHEET_ID}/Sites`;
+const GUARDS_URL = `https://opensheet.elk.sh/${SHEET_ID}/Guards`;
+
+let map;
+let guardsData = [];
+
+/* ================= HELPERS ================= */
+function dutyClass(s){
+  if(s==="On Duty") return "on-duty";
+  if(s==="Off Duty") return "off-duty";
+  if(s==="Absconding") return "absconding";
+  return "";
+}
+
+function guardsTable(list){
+  if(!list.length) return "<p class='empty'>None</p>";
+  return `
+  <table>
+    <thead>
+      <tr><th>#</th><th>Guard</th><th>Rank</th><th>Phone</th><th>Shift</th></tr>
+    </thead>
+    <tbody>
+    ${list.map((g,i)=>`
+      <tr class="${dutyClass(g["Duty Status"])}">
+        <td>${i+1}</td>
+        <td>${g["Guard Name"]}</td>
+        <td>${g.Rank}</td>
+        <td>${g.Phone}</td>
+        <td>${g.Shift || "-"}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+}
+
+/* ================= PANEL ================= */
+function updatePanel(site){
+  const panel = document.getElementById("sitePanel");
+
+  const siteGuards = guardsData.filter(
+    g => g.Name?.trim() === site.Name.trim()
+  );
+
+  const on = siteGuards.filter(g=>g["Duty Status"]==="On Duty");
+  const off = siteGuards.filter(g=>g["Duty Status"]==="Off Duty");
+  const abs = siteGuards.filter(g=>g["Duty Status"]==="Absconding");
+
+  panel.innerHTML = `
+    <div class="section">
+      <h3>Site Overview</h3>
+      <div class="content">
+        <b>${site.Name}</b><br>
+        Client: ${site.Client || "-"}<br>
+        Status: ${site["Site Status"] || "-"}
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Duty Summary</h3>
+      <div class="content">
+        🟢 On Duty: ${on.length}<br>
+        🟠 Off Duty: ${off.length}<br>
+        🔴 Absconding: ${abs.length}
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>On Duty</h3>
+      <div class="content">${guardsTable(on)}</div>
+    </div>
+
+    <div class="section">
+      <h3>Off Duty</h3>
+      <div class="content">${guardsTable(off)}</div>
+    </div>
+
+    <div class="section">
+      <h3>Absconding</h3>
+      <div class="content">${guardsTable(abs)}</div>
+    </div>
+  `;
+}
+
+/* ================= LOAD ================= */
+async function loadGuards(){
+  guardsData = await fetch(GUARDS_URL).then(r=>r.json());
+}
+
+async function loadSites(){
+  const sites = await fetch(SITES_URL).then(r=>r.json());
+
+  sites.forEach(site=>{
+    const lat = parseFloat(site.Latitude);
+    const lng = parseFloat(site.Longitude);
+    if(isNaN(lat)||isNaN(lng)) return;
+
+    const marker = new google.maps.Marker({
+      map,
+      position:{lat,lng},
+      title:site.Name
+    });
+
+    const info = new google.maps.InfoWindow({
+      content:`<strong>${site.Name}</strong>`
+    });
+
+    marker.addListener("click",()=>{
+      info.open(map,marker);
+      updatePanel(site);
+    });
+  });
+}
+
+async function initMap(){
+  map = new google.maps.Map(document.getElementById("map"),{
+    center:{lat:17.45,lng:78.48},
+    zoom:10
+  });
+
+  await loadGuards();
+  loadSites();
+}
+</script>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyConhuaK9NwmTVHZ5yk7n54uuFTzqtG2wI&callback=initMap"
+  async defer>
+</script>
+
+</body>
+</html>
