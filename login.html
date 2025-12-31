@@ -12,7 +12,8 @@
 
   <div id="g_id_onload"
        data-client_id="486341403534-cvi5dq1llt2j7243qa9134t52ijivlp5.apps.googleusercontent.com"
-       data-callback="handleCredentialResponse">
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
   </div>
 
   <div class="g_id_signin"
@@ -27,7 +28,8 @@
         atob(response.credential.split('.')[1])
       );
 
-      if (payload.hd !== "blackbeltcommandos.net") {
+      // Workspace-only restriction
+      if (!payload.hd || payload.hd !== "blackbeltcommandos.net") {
         alert("Unauthorized domain");
         return;
       }
