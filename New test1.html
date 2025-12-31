@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html>
+  <script>
+  // 🔐 Require login
+  if (!localStorage.getItem("bbc_user")) {
+    window.location.href = "login.html";
+  }
+</script>
+
 <head>
+  
 <meta charset="utf-8">
 <title>BBC – Sites & Guards Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -260,4 +268,5 @@ async function initMap(){
 
 </body>
 </html>
+
 
