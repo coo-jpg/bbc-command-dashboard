@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BBC Secure Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body style="background:#000;color:white;text-align:center;padding-top:120px">
+
+  <img src="3D Logo Transparent.png" width="120"><br><br>
+
+  <div id="g_id_onload"
+       data-client_id="486341403534-cvi5dq1llt2j7243qa9134t52ijivlp5.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+
+  <div class="g_id_signin"
+       data-type="standard"
+       data-theme="filled_black"
+       data-size="large">
+  </div>
+
+  <script>
+    function handleCredentialResponse(response) {
+      const payload = JSON.parse(
+        atob(response.credential.split('.')[1])
+      );
+
+      if (payload.hd !== "blackbeltcommandos.net") {
+        alert("Unauthorized domain");
+        return;
+      }
+
+      localStorage.setItem("bbc_user", payload.email);
+      localStorage.setItem("bbc_name", payload.name);
+
+      window.location.href = "dashboard.html";
+    }
+  </script>
+
+</body>
+</html>
